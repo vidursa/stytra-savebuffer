@@ -16,14 +16,10 @@ except ImportError:
 
 
 class NIVoltageStimulus(Stimulus):
-    def __init__(self, *args, dev="Dev1", chan="ao0", min_val=0, max_val=0, **kwargs):
+    def __init__(self, *args, dev="Dev1", chan="ao0"):
 
         self.dev = dev
         self.chan = chan
-        self.min_val = min_val
-        self.max_val = max_val
-
-        super().__init__(*args, **kwargs)
 
 
 class SetVoltageStimulus(NIVoltageStimulus):
@@ -33,11 +29,7 @@ class SetVoltageStimulus(NIVoltageStimulus):
 
     def start(self):
         with nidaqmx.Task() as task:
-            task.ao_channels.add_ao_voltage_chan(
-                "{}/{}".format(self.dev, self.chan),
-                min_val=self.min_val,
-                max_val=self.max_val5,
-            )
+            task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.dev, self.chan))
             task.write(self.voltage)
 
 
@@ -49,17 +41,12 @@ class InterpolatedVoltageStimulus(NIVoltageStimulus, InterpolatedStimulus):
     def update(self):
         super().update()
         with nidaqmx.Task() as task:
-            task.ao_channels.add_ao_voltage_chan(
-                "{}/{}".format(self.dev, self.chan),
-                min_val=self.min_val,
-                max_val=self.max_val,
-            )
-
+            task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.dev, self.chan))
             task.write(self.voltage)
 
-        # with nidaqmx.Task() as task:
-        #     task.ai_channels.add_ai_voltage_chan("Dev1/ai1")
-        #     print(task.read())
+        with nidaqmx.Task() as task:
+            task.ai_channels.add_ai_voltage_chan("Dev1/ai1")
+            print(task.read())
 
 
 class U3LabJackVoltageStimulus(Stimulus):

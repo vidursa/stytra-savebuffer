@@ -13,7 +13,6 @@ import numpy as np
 import cv2
 import pyqtgraph as pg
 
-REQUIRES_EXTERNAL_HARDWARE = False
 
 # Here we showcase the steps required to add your custom tracking function in
 #  stytra. It might look a bit complicated at the beginning, but
@@ -34,7 +33,8 @@ REQUIRES_EXTERNAL_HARDWARE = False
 
 
 class FlyTrackingMethod(ImageToDataNode):
-    """Fly tracking method using ellipse fit."""
+    """Fly tracking method using ellipse fit.
+    """
 
     def __init__(self, *args, **kwargs):
         # Initialise the "Node" object passing the name of our tracking method:
@@ -207,7 +207,7 @@ class FlyTrackingSelection(CameraSelection):
 
                         # Angle and rad of center point from left lower corner:
                         c_th = np.arctan(dim_x / dim_y)
-                        c_r = np.sqrt(dim_x**2 + dim_y**2)
+                        c_r = np.sqrt(dim_x ** 2 + dim_y ** 2)
 
                         # Coords of the center after rotation around left lower
                         # corner, to be corrected when setting position:

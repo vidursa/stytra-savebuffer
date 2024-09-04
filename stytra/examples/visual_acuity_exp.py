@@ -6,11 +6,9 @@ from stytra.stimulation import Protocol
 from stytra.stimulation.stimuli import (
     MovingWindmillStimulus,
     FullFieldVisualStimulus,
-    CombinerStimulus,
+    StimulusCombiner,
 )
 from lightparam import Param
-
-REQUIRES_EXTERNAL_HARDWARE = False
 
 
 class WindmillProtocol(Protocol):
@@ -56,7 +54,7 @@ class WindmillProtocol(Protocol):
                 df_param=df, n_arms=n_arms, wave_shape=self.wave_shape
             )
             pause = FullFieldVisualStimulus(duration=d, clip_mask=0.1, color=(0, 0, 0))
-            stimuli.append(CombinerStimulus(stim_list=[windmill, pause]))
+            stimuli.append(StimulusCombiner(stim_list=[windmill, pause]))
 
         return stimuli
 

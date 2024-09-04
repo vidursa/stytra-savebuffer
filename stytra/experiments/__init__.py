@@ -99,7 +99,6 @@ class Experiment(QObject):
         metadata_general=None,
         metadata_animal=None,
         loop_protocol=False,
-        arduino_config=None,
         log_format="csv",
         trigger_duration_queue=None,
         scope_triggering=None,
@@ -111,8 +110,6 @@ class Experiment(QObject):
 
         self.app = app
         self.protocol = protocol
-
-        self.arduino_config = arduino_config
 
         # If there's a trigger, reference its queue to pass the duration:
         self.trigger = scope_triggering
@@ -136,7 +133,6 @@ class Experiment(QObject):
 
         self.window_main = None
         self.scope_config = None
-        self.arduino_board = None
         self.abort = False
 
         self.logger = logging.getLogger()
@@ -231,18 +227,8 @@ class Experiment(QObject):
 
         """
         self.gui_timer.start(1000 // 60)
-
         self.dc.restore_from_saved()
         self.set_id()
-
-        if self.arduino_config is not None:
-            from stytra.hardware.external_pyfirmata import PyfirmataConnection
-
-            self.arduino_board = PyfirmataConnection(
-                com_port=self.arduino_config["com_port"],
-                layout=self.arduino_config["layout"],
-            )
-
         self.make_window()
         self.protocol_runner.update_protocol()
 
@@ -259,7 +245,8 @@ class Experiment(QObject):
             )
 
     def make_window(self):
-        """Make experiment GUI, defined in children depending on experiments."""
+        """Make experiment GUI, defined in children depending on experiments.
+        """
         self.window_main = ExperimentWindow(self)
 
         self.window_main.construct_ui()
@@ -297,7 +284,7 @@ class Experiment(QObject):
     def read_scope_data(self):
         """Read data from an external acquisition device triggered with stytra.
         Currently we assume this comes from a microscope, thus the logging in
-        "imaging/microscope_config". To be changed in a future version maybe.
+        "imaging/microscope_config".
         """
         if self.trigger is not None:
             try:
@@ -332,7 +319,8 @@ class Experiment(QObject):
         self.abort = True
 
     def save_data(self):
-        """Called at the end of the experiment to save all logs."""
+        """Called at the end of the experiment to save all logs.
+        """
         if self.base_dir is not None:
             if self.dc is not None:
                 self.dc.add_static_data(self.protocol_runner.log, name="stimulus/log")
@@ -365,23 +353,8 @@ class Experiment(QObject):
                 version = None
 
                 try:
-
-                    ####################### try get repo even during testing ###############################
-                    if (
-                        "pytest" in sys.argv[0]
-                    ):  # if first element points to pytest, check other addresses in args
-
-                        for el in sys.argv:
-                            if os.path.isdir(el):
-                                repo = git.Repo(el, search_parent_directories=True)
-                                break
-
-                    else:
-
-                        repo = git.Repo(sys.argv[0], search_parent_directories=True)
-                        git_hash = repo.head.object.hexsha
-                    #########################################################################################
-
+                    repo = git.Repo(sys.argv[0], search_parent_directories=True)
+                    git_hash = repo.head.object.hexsha
                     try:
                         version = pkg_resources.get_distribution("stytra").version
                     except pkg_resources.DistributionNotFound:
@@ -389,8 +362,6 @@ class Experiment(QObject):
 
                 except git.InvalidGitRepositoryError:
                     self.logger.info("Invalid git repository")
-                except git.exc.NoSuchPathError:
-                    self.logger.info("Path not a git repository")
 
                 self.dc.add_static_data(
                     dict(
@@ -470,9 +441,6 @@ class Experiment(QObject):
         if self.trigger is not None:
             self.trigger.kill_event.set()
             self.trigger.join()
-
-        if self.arduino_board is not None:
-            self.arduino_board.close()
 
         st = self.window_main.saveState()
         geom = self.window_main.saveGeometry()
@@ -595,7 +563,8 @@ class VisualExperiment(Experiment):
             )
 
     def make_window(self):
-        """Make experiment GUI, defined in children depending on experiments."""
+        """Make experiment GUI, defined in children depending on experiments.
+        """
         if self.stim_plot:
             self.window_main = DynamicStimExperimentWindow(self)
             self.window_main.stream_plot.add_stream(self.protocol_runner.dynamic_log)

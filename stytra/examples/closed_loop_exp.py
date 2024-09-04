@@ -7,8 +7,6 @@ from stytra.stimulation import Protocol
 from stytra.stimulation.stimuli import Basic_CL_1D, GratingStimulus
 from lightparam import Param
 
-REQUIRES_EXTERNAL_HARDWARE = False
-
 
 class ClosedLoop1DProt(Protocol):
     name = "closed_loop1D_gratings"

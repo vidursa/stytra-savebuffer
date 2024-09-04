@@ -39,10 +39,10 @@ class MultiStreamPlot(QWidget):
 
     def __init__(
         self,
-        time_past=5,
+        time_past=60,
         bounds_update=0.1,
         compact=False,
-        n_points_max=500,
+        n_points_max=1000,
         accumulators=None,
         precision=None,
         experiment=None,
@@ -93,7 +93,7 @@ class MultiStreamPlot(QWidget):
             self.spn_zoom.setValue(time_past)
             self.spn_zoom.setSuffix("s")
             self.spn_zoom.setMinimum(0.1)
-            self.spn_zoom.setMaximum(30)
+            self.spn_zoom.setMaximum(60)
             self.spn_zoom.valueChanged.connect(self.update_zoom)
 
             self.control_layout.addItem(
@@ -435,7 +435,8 @@ class MultiStreamPlot(QWidget):
 
 
 class StreamPlotConfig(QWidget):
-    """Widget for configuring streaming plots"""
+    """ Widget for configuring streaming plots
+    """
 
     def __init__(self, sp: MultiStreamPlot):
         super().__init__()
@@ -499,7 +500,7 @@ class FrameratePlot(MultiStreamPlot):
             return rounded
 
     def _update_round_bounds(self, old_bounds, new_bounds, tolerance=0.1):
-        """If bounds are exceeed by tolerance
+        """ If bounds are exceeed by tolerance
 
         Parameters
         ----------

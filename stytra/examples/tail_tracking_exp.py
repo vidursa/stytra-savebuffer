@@ -2,8 +2,6 @@ from pathlib import Path
 from stytra import Stytra
 from stytra.examples.gratings_exp import GratingsProtocol
 
-REQUIRES_EXTERNAL_HARDWARE = False
-
 
 class TrackingGratingsProtocol(GratingsProtocol):
     name = "gratings_tail_tracking"

@@ -3,7 +3,7 @@ from stytra.hardware.video.cameras.interface import Camera
 
 try:
     from pymba import Vimba
-    from pymba.vimba_exception import VimbaException
+    from pymba.vimbaexception import VimbaException
 except ImportError:
     pass
 
@@ -22,11 +22,9 @@ class AvtCamera(Camera):
 
     """
 
-    def __init__(self, camera_id=None, interlacing=False, **kwargs):
+    def __init__(self, **kwargs):
         # Set timeout for frame acquisition. Give this as input?
         self.timeout_ms = 1000
-        self.camera_id = camera_id
-        self.interlacing = interlacing  # some cameras look like they have a double image, these should be interlaced.
 
         super().__init__(**kwargs)
 
@@ -41,34 +39,27 @@ class AvtCamera(Camera):
         """ """
         self.vimba.startup()
         messages = []
-        # Get available cameras:
-        camera_ids = self.vimba.camera_ids()
-        if self.camera_id is None:
-            camera_index = 0
-            if len(camera_ids) > 0:
-                messages.append(
-                    "I:Multiple cameras detected: {}. {} wiil be used.".format(
-                        camera_ids, self.camera_id
-                    )
+        # If there are multiple cameras, only the first one is used (this may
+        # change):
+        camera_ids = self.vimba.getCameraIds()
+        if len(camera_ids) > 1:
+            messages.append(
+                "I:Multiple cameras detected: {}. {} wiil be used.".format(
+                    camera_ids, camera_ids[0]
                 )
+            )
         else:
-            try:
-                camera_index = camera_ids.index(self.camera_id)
-            except KeyError:
-                raise KeyError(
-                    f"Camera id {self.camera_id} is not available (available cameras: {self.camera_ids})"
-                )
-        messages.append("I:Detected camera {}.".format(camera_ids[camera_index]))
-        self.cam = self.vimba.camera(camera_index)
+            messages.append("I:Detected camera {}.".format(camera_ids[0]))
+        self.cam = self.vimba.getCamera(camera_ids[0])
 
         # Start camera:
-        self.cam.open()
-        self.frame = self.cam.new_frame()
-        self.frame.announce()
+        self.cam.openCamera()
+        self.frame = self.cam.getFrame()
+        self.frame.announceFrame()
 
-        self.cam.start_capture()
-        self.frame.queue_for_capture()
-        self.cam.run_feature_command("AcquisitionStart")
+        self.cam.startCapture()
+        self.frame.queueFrameCapture()
+        self.cam.runFeatureCommand("AcquisitionStart")
 
         return messages
 
@@ -103,20 +94,16 @@ class AvtCamera(Camera):
     def read(self):
         """ """
         try:
-            self.frame.wait_for_capture(self.timeout_ms)
-            self.frame.queue_for_capture()
-            raw_data = self.frame.buffer_data()
+            self.frame.waitFrameCapture(self.timeout_ms)
+            self.frame.queueFrameCapture()
+
+            raw_data = self.frame.getBufferByteData()
+
             frame = np.ndarray(
                 buffer=raw_data,
                 dtype=np.uint8,
-                shape=(self.frame.data.height, self.frame.data.width),
+                shape=(self.frame.height, self.frame.width),
             )
-
-            if self.interlacing:
-                new_frame = np.empty(frame.shape, dtype=np.uint8)
-                new_frame[1::2] = frame[:246]
-                new_frame[::2] = frame[246:]
-                frame = new_frame
 
         except VimbaException:
             frame = None
@@ -125,8 +112,8 @@ class AvtCamera(Camera):
 
     def release(self):
         """ """
-        self.frame.wait_for_capture(self.timeout_ms)
-        self.cam.run_feature_command("AcquisitionStop")
-        self.cam.end_capture()
-        self.cam.revoke_all_frames()
+        self.frame.waitFrameCapture(self.timeout_ms)
+        self.cam.runFeatureCommand("AcquisitionStop")
+        self.cam.endCapture()
+        self.cam.revokeAllFrames()
         self.vimba.shutdown()

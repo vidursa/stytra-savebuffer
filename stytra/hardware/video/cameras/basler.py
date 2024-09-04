@@ -2,6 +2,7 @@ from stytra.hardware.video.cameras.interface import Camera
 
 try:
     from pypylon import pylon
+    import pypylon.genicam as geni
 except ImportError:
     pass
 
@@ -22,9 +23,15 @@ class BaslerCamera(Camera):
             pylon.TlFactory.GetInstance().CreateFirstDevice()
         )
 
+
     def open_camera(self):
         """ """
         self.camera.Open()
+        self.camera.PixelFormat.Value = "Mono8"
+        self.camera.Gain.Value = 10
+        self.camera.ExposureTime.Value = 4000 #cam.ExposureTime.Min
+
+
         self.camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
         return ["I:Basler camera opened"]
 

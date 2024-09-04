@@ -5,6 +5,7 @@ from stytra.experiments.tracking_experiments import (
     CameraVisualExperiment,
     TrackingExperiment,
 )
+from stytra.experiments.camera_recording_experiment import VideoRecordingExperiment
 from stytra.calibration import CircleCalibrator
 from stytra.utilities import recursive_update
 
@@ -24,7 +25,7 @@ from pathlib import Path
 
 
 class Stytra:
-    """Stytra application instance. Contains the QApplication and
+    """ Stytra application instance. Contains the QApplication and
     constructs the appropriate experiment object for the specified
     parameters
 
@@ -87,7 +88,7 @@ class Stytra:
                 for closed-loop experiments: either "vigor" for embedded experiments
                     or "position" for freely-swimming ones. A custom estimator can be supplied.
 
-        recording : dict
+        recording : bool (False) or dict
             for video-recording experiments
                 extension: mp4 (default) or h5
                     take care, if saving as h5 all frames are first stored in memory,
@@ -126,21 +127,9 @@ class Stytra:
             number of tracking processes to be used. Using more than 1 can improve performance
             but also cause issues in state-dependent tracking functions.
 
-        arduino_config : dict
-            Dictionary describing the configuration of an Arduino board.
-            Required fields:
-                - "com_port" : serial port of the board
-                - "layout" : list of dictionaries with the configuration of the pins. Each element of the dictionary
-                  is a dictionary with the fields:
-                   - "pin" : number of the pin
-                   - "mode" : one of "input", "output", "pwm", "servo" (PyFirmata docs for more info)
-                   - "ad" : either "a" (for analog) or "d" (for digital)
-
-            Example: arduino_board=dict(port="COM3", layout=(dict(pin=5, mode="pwm", ad="d")))
-
     """
 
-    def __init__(self, exec=True, app=None, **kwargs):
+    def __init__(self, recording=None, exec=True, app=None, **kwargs):
         # Check if exist a default config file in the home (user) directory:
         mp.set_start_method("spawn", force=True)
         inum = kwargs.get("instance_number", -1)
@@ -186,6 +175,9 @@ class Stytra:
                 base = TrackingExperiment
                 if not class_kwargs["tracking"].get("embedded", True):
                     class_kwargs["calibrator"] = CircleCalibrator()
+
+            if recording:
+                base = VideoRecordingExperiment
 
         # Stytra logo
         app_icon = QIcon()

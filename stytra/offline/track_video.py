@@ -65,16 +65,15 @@ class OfflineToolbar(QToolBar):
         fileformat = self.cmb_fmt.currentText()
 
         self.exp.camera.kill_event.set()
-        reader = imageio.get_reader(str(self.input_path), "ffmpeg")
+        reader = imageio.get_reader(str(self.input_path))
         data = []
         self.exp.window_main.stream_plot.toggle_freeze()
 
         output_name = str(self.output_path) + "." + fileformat
         self.diag_track.show()
-        if hasattr(reader, "count_frames"):
-            l = reader.count_frames()
-        else:
-            l = reader.get_length()
+        l = reader.get_length()
+        if not (0 < l < 100000):
+            l = 1
         self.diag_track.prog_track.setMaximum(l)
         self.diag_track.lbl_status.setText("Tracking to " + output_name)
 
@@ -99,7 +98,9 @@ class OfflineToolbar(QToolBar):
 
 
 class StytraLoader(QDialog):
-    """A quick-and-dirty monkey-patch of Stytra for easy offline tracking"""
+    """ A quick-and-dirty monkey-patch of Stytra for easy offline tracking
+
+    """
 
     def __init__(self, app):
         super().__init__()

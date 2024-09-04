@@ -29,7 +29,7 @@ class VideoSource(FrameProcess):
     """Abstract class for a process that generates frames, being it a camera
     or a file source. A maximum size of the memory used by the process can be
     set.
-
+    
     **Input Queues:**
 
     self.control_queue :
@@ -92,7 +92,7 @@ class CameraSource(VideoSource):
     """Process for controlling a camera.
 
     Cameras currently implemented:
-
+    
     ======== ===========================================
     Ximea    Add some info
     Avt      Add some info
@@ -118,7 +118,7 @@ class CameraSource(VideoSource):
         *args,
         downsampling=1,
         roi=(-1, -1, -1, -1),
-        max_buffer_length=1000,
+        max_buffer_length=12000,
         camera_params=dict(),
         **kwargs
     ):
@@ -331,11 +331,8 @@ class VideoFileSource(VideoSource):
             container.streams.video[0].thread_count = 1
 
             prt = None
-            while not self.kill_event.is_set():
+            while self.loop:
                 for framedata in container.decode(video=0):
-                    if self.kill_event.is_set():
-                        break
-
                     messages = []
                     if self.paused:
                         frame = self.old_frame
@@ -362,7 +359,7 @@ class VideoFileSource(VideoSource):
                     for m in messages:
                         self.message_queue.put(m)
 
-                container.seek(0)
+                container.seek(0, whence="frame")
 
             return
 
@@ -371,7 +368,7 @@ class VideoControlParameters(ParametrizedQt):
     def __init__(self, **kwargs):
         super().__init__(name="video_params", **kwargs)
         self.framerate = Param(
-            100.0, limits=(10, 700), unit="Hz", desc="Framerate (Hz)"
+            200.0, limits=(10, 700), unit="Hz", desc="Framerate (Hz)"
         )
         self.offset = Param(50)
         self.paused = Param(False)
@@ -392,19 +389,19 @@ class CameraControlParameters(ParametrizedQt):
 
     def __init__(self, **kwargs):
         super().__init__(name="camera_params", **kwargs)
-        self.exposure = Param(1.0, limits=(0.1, 1000), unit="ms", desc="Exposure (ms)")
+        self.exposure = Param(4.0, limits=(0.1, 1000), unit="ms", desc="Exposure (ms)")
         self.framerate = Param(
-            150.0, limits=(1, 700), unit=" Hz", desc="Framerate (Hz)"
+            200.0, limits=(1, 700), unit=" Hz", desc="Framerate (Hz)"
         )
-        self.gain = Param(1.0, limits=(0.1, 12), desc="Camera amplification gain")
+        self.gain = Param(10.0, limits=(0.1, 12), desc="Camera amplification gain")
         self.ring_buffer_length = Param(
-            300, (1, 2000), desc="Rolling buffer that saves the last items", gui=False
+            1200, (1, 2000), desc="Rolling buffer that saves the last items"
         )
         self.paused = Param(False)
-        self.replay = Param(True, desc="Replaying", gui=False)
+        self.replay = Param(True, desc="Replaying")
         self.replay_fps = Param(
-            15,
+            200,
             (0, 500),
             desc="If bigger than 0, the rolling buffer will be replayed at the given framerate",
         )
-        self.replay_limits = Param((0, 600), gui=False)
+        self.replay_limits = Param((0, 1200), gui=False)

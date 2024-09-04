@@ -70,9 +70,8 @@ class VigorMotionEstimator(Estimator):
 
 
 class BoutsEstimator(VigorMotionEstimator):
-    def __init__(
-        self, *args, bout_threshold=0.05, vigor_window=0.05, min_interbout=0.1, **kwargs
-    ):
+    def __init__(self, *args, bout_threshold = 0.05, vigor_window=0.05,
+                 min_interbout=0.1, **kwargs):
         super().__init__(*args, base_gain=1, **kwargs)
         self.bout_threshold = bout_threshold
         self.vigor_window = vigor_window
@@ -80,137 +79,22 @@ class BoutsEstimator(VigorMotionEstimator):
         self.last_bout_t = None
 
     def bout_occured(self):
-        if self.get_velocity() > self.base_gain * self.bout_threshold:
-            if (
-                self.last_bout_t is None
-                or (datetime.datetime.now() - self.last_bout_t).total_seconds()
-                > self.min_interbout
-            ):
+        if self.get_velocity() > self.base_gain*self.bout_threshold:
+            if self.last_bout_t is None or (datetime.datetime.now() - self.last_bout_t).total_seconds() > \
+                        self.min_interbout:
                 self.last_bout_t = datetime.datetime.now()
                 return True
         return False
-
-
-class TailSumEstimator(Estimator):
-    def __init__(
-        self,
-        *args,
-        vigor_window=0.050,
-        theta_window=0.07,
-        base_gain=-30,
-        bout_threshold=0.05,
-        min_interbout=0.1,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.vigor_window = vigor_window
-        self.theta_window = theta_window
-        self.last_dt = 1 / 500.0
-        self.base_gain = base_gain
-        self._output_type = namedtuple("s", ("vigor", "theta", "bout_on"))
-        self.bout_threshold = bout_threshold
-        self.vigor_window = vigor_window
-        self.min_interbout = min_interbout
-        self.last_bout_t = None
-        self.prev_time_on = False
-        self.bout_onset = 0
-        self.bout_on = 0
-        self.theta_provided = True
-        self.last_bout_t = 0
-        self.last_vigor = 0
-        self.last_bout_on = 0
-
-        self.tail_th = 0
-
-    def bout_occured(self):
-        if self.bout_on:
-            if (
-                self.last_bout_t is None
-                or (datetime.datetime.now() - self.last_bout_t).total_seconds()
-                > self.min_interbout
-            ):
-                self.last_bout_t = datetime.datetime.now()
-                return True
-        return False
-
-    def get_vel_and_theta(self, lag=0):
-        """
-
-        Parameters
-        ----------
-        lag :
-             (Default value = 0)
-
-        Returns
-        -------
-
-        """
-        # Vigor (copypasted from VigorEstimator method for simplicity)
-        vigor_n_samples = max(int(round(self.vigor_window / self.last_dt)), 2)
-        n_samples_lag = max(int(round(lag / self.last_dt)), 0)
-        if not self.acc_tracking.stored_data:
-            return 0, 0, 0
-        past_tail_motion = self.acc_tracking.get_last_n(
-            vigor_n_samples + n_samples_lag
-        )[0:vigor_n_samples]
-        end_t = past_tail_motion.t.iloc[-1]
-        start_t = past_tail_motion.t.iloc[0]
-        new_dt = (end_t - start_t) / vigor_n_samples
-        if new_dt > 0:
-            self.last_dt = new_dt
-        vigor = np.nanstd(np.array(past_tail_motion.tail_sum))
-
-        if vigor is not None:
-            self.bout_on = int(vigor > self.bout_threshold)
-        else:
-            self.bout_on = int(self.last_vigor > self.bout_threshold)
-
-        if self.bout_onset == 0:
-            if self.bout_on and not self.last_bout_on:
-                self.bout_onset = 1
-                self.bout_start_t = datetime.datetime.now()
-
-        else:
-            self.theta_provided = False
-            self.bout_onset = 0
-
-        if (
-            not self.theta_provided
-        ):  # and (datetime.datetime.now() - self.bout_start_t).total_seconds() > 0.07:
-            # Tail theta:
-            th_n_samples = max(int(round(self.theta_window / self.last_dt)), 2)
-            n_samples_lag = max(int(round(lag / self.last_dt)), 0)
-
-            past_tail_motion = self.acc_tracking.get_last_n(
-                th_n_samples + n_samples_lag
-            )[0:th_n_samples]
-            self.tail_th = np.nanmean(
-                np.array(past_tail_motion.tail_sum) - past_tail_motion.tail_sum.iloc[0]
-            )
-            self.theta_provided = True
-        else:
-            self.tail_th = self.tail_th * (3 / 4)
-        rn = np.random.randint(0, 1) / 100
-        on_ns = self.bout_onset + rn
-        if len(self.log.times) == 0 or self.log.times[-1] < end_t:
-            self.log.update_list(end_t, self._output_type(vigor, self.tail_th, on_ns))
-
-        if vigor is not None:
-            self.last_vigor = vigor
-
-        self.last_bout_on = self.bout_on
-
-        return vigor * self.base_gain, -self.tail_th * 3, self.bout_on
 
 
 def rot_mat(theta):
-    """The rotation matrix for an angle theta"""
+    """The rotation matrix for an angle theta """
     return np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
 
 class PositionEstimator(Estimator):
     def __init__(self, *args, change_thresholds=None, velocity_window=10, **kwargs):
-        """Uses the projector-to-camera calibration to give fish position in
+        """ Uses the projector-to-camera calibration to give fish position in
         scree coordinates. If change_thresholds are set, update only the fish
         position after there is a big enough change (which prevents small
         oscillations due to tracking)
@@ -246,13 +130,13 @@ class PositionEstimator(Estimator):
             self.acc_tracking.get_last_n(self.velocity_window)[["f0_x", "f0_y"]].values,
             0,
         )
-        return np.sqrt(np.sum(vel**2))
+        return np.sqrt(np.sum(vel ** 2))
 
     def get_istantaneous_velocity(self):
         vel_xy = self.acc_tracking.get_last_n(self.velocity_window)[
             ["f0_vx", "f0_vy"]
         ].values
-        return np.sqrt(np.sum(vel_xy**2))
+        return np.sqrt(np.sum(vel_xy ** 2))
 
     def reset(self):
         super().reset()
@@ -307,7 +191,7 @@ class PositionEstimator(Estimator):
 
 class SimulatedPositionEstimator(Estimator):
     def __init__(self, *args, motion, **kwargs):
-        """Uses the projector-to-camera calibration to give fish position in
+        """ Uses the projector-to-camera calibration to give fish position in
         scree coordinates. If change_thresholds are set, update only the fish
         position after there is a big enough change (which prevents small
         oscillations due to tracking)
@@ -330,6 +214,5 @@ class SimulatedPositionEstimator(Estimator):
         return kt
 
 
-estimator_dict = dict(
-    position=PositionEstimator, vigor=VigorMotionEstimator, bouts=BoutsEstimator
-)
+estimator_dict = dict(position=PositionEstimator, vigor=VigorMotionEstimator,
+                      bouts=BoutsEstimator)
