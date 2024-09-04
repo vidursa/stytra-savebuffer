@@ -81,6 +81,7 @@ class FramerateWidget(QWidget):
 
         if max_bound == min_bound:
             max_bound += 1
+            delta_bound = 1
 
         limit_color = (200, 200, 200)
         goal_color = (80, 80, 80)
@@ -100,7 +101,7 @@ class FramerateWidget(QWidget):
         h_min = text_height + pad
 
         if self.set_fps and self.fps is not None:
-            loc = (self.fps - min_bound) / delta_bound
+            loc = (self.fps - min_bound) / delta_bound #self.fps
             w_l = int(w_min + loc * delta_w)
 
             w_shadow_min = int(

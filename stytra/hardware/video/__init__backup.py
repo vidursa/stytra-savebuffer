@@ -4,10 +4,10 @@ implement video saving
 """
 
 import numpy as np
-import pyautogui
+
 from multiprocessing import Queue, Event
 from queue import Empty, Full
-from pathlib import Path
+
 from lightparam import Param
 from lightparam.param_qt import ParametrizedQt
 
@@ -18,14 +18,11 @@ import flammkuchen as fl
 
 from stytra.hardware.video.cameras import camera_class_dict
 
-from stytra.hardware.video.write import VideoWriter, BufferVideoWriter
+from stytra.hardware.video.write import VideoWriter
 
 from stytra.hardware.video.ring_buffer import RingBuffer
-import tempfile
-import time
-import datetime
-import os
 
+import time
 
 
 class VideoSource(FrameProcess):
@@ -139,13 +136,7 @@ class CameraSource(VideoSource):
 
         self.state = None
         self.ring_buffer = None
-        self.saved = True
-        self.screenWidth, self.screenHeight = pyautogui.size() # Get the size of the primary monitor.
-        base = 'F:/todelete'
-        self.load_path=os.path.join(base,'load.png')
-        self.start_path=os.path.join(base,'start.png')
-        self.end_path=os.path.join(base,'end.png')
-        
+
     def retrieve_params(self, messages):
         while True:
             try:
@@ -189,7 +180,7 @@ class CameraSource(VideoSource):
                 self.retrieve_params(messages)
             # Grab the new frame, and put it in the queue if valid:
             try:
-                arr, timepoint, logic = self.cam.read()
+                arr = self.cam.read()
             except CameraError:
                 pass
 
@@ -208,52 +199,7 @@ class CameraSource(VideoSource):
             if self.ring_buffer is None or res_len != self.ring_buffer.length:
                 self.ring_buffer = RingBuffer(res_len)
 
-#######################################################################################################
-            if self.state.save_buffer:
-                if self.saved:
-                    time.sleep(1)
-                else:
-                    self.message_queue.put("   Saving buffer")
-                    
-                    if self.ring_buffer.arr is not None:
-                        region= None
-                        try:
-                            region = pyautogui.locateOnScreen(self.end_path,confidence=0.85)
-                            pyautogui.click(region[0], region[1])    
-                        except:
-                            print('No end button found')
-                        region= None
-                        
-                        self.frame_recorder = BufferVideoWriter(
-                            input_queue=self.ring_buffer.get_all(), 
-                            meta_queue=self.ring_buffer.get_all_meta())
-    
-                        p = Path()
-                        self.current_timestamp = datetime.datetime.now()
-                        time.sleep(1)
-                        # self.animal_id = (
-                        #     self.current_timestamp.strftime("%y%m%d")
-                        #     + "_f"
-                        #     + str(self.metadata_animal.id)
-                        # )
-                        foldername = self.state.save_direc
-                        
-                        fb = p.joinpath(
-                            foldername, self.current_timestamp.strftime("%H%M%S") + "_"
-                        )
-                        self.frame_recorder.filename_queue.put(fb)
-                        self.frame_recorder.run()
-                        self.ring_buffer.reset()
-                        # self.state.save_buffer = False
-                        self.saved = True
-                        self.message_queue.put("   Saved")
-                    else:
-                        self.message_queue.put("E:buffer saved before any frames acquired")
-                    prt = None
-                    
-            
-#######################################################################################################                
-            elif self.state.paused:
+            if self.state.paused:
                 self.message_queue.put(
                     "I:Ring_buffer_size:" + str(self.ring_buffer.length)
                 )
@@ -268,6 +214,9 @@ class CameraSource(VideoSource):
                         *self.state.replay_limits, self.ring_buffer.length
                     )
                 )
+            elif self.state.save_buffer:
+                self.message_queue.put("  Saving buffer")
+                
                 old_fps = self.framerate_rec.current_framerate
                 if old_fps is not None:
                     self.ring_buffer.replay_limits = (
@@ -285,20 +234,10 @@ class CameraSource(VideoSource):
                         time.sleep(extrat)
                 prt = time.process_time()
             else:
-                region= None
-                if self.saved:
-                    try:
-                        region = pyautogui.locateOnScreen(self.start_path,confidence=0.85)
-                        pyautogui.click(region[0], region[1])    
-                    except:
-                        print('No start button found')
-                region= None
-
-                self.saved = False
                 prt = None
                 if arr is not None:
                     try:
-                        self.ring_buffer.put(arr, timepoint, logic)
+                        self.ring_buffer.put(arr)
                     except AttributeError:
                         pass
                     self.put_frame(arr, messages)
@@ -306,6 +245,12 @@ class CameraSource(VideoSource):
                 self.message_queue.put(m)
 
         self.cam.release()
+
+    def save_buffer(self):
+        if self.state is None:
+            self.state = CameraControlParameters()
+        self.message_queue.put("Saving buffer")
+
 
 class VideoFileSource(VideoSource):
     """A class to stream videos from a file to test parts of
@@ -462,7 +407,7 @@ class CameraControlParameters(ParametrizedQt):
             1200, (1, 2000), desc="Rolling buffer that saves the last items"
         )
         self.paused = Param(False)
-        self.replay = Param(False, desc="Replaying")
+        self.replay = Param(True, desc="Replaying")
         self.replay_fps = Param(
             200,
             (0, 500),
@@ -470,5 +415,4 @@ class CameraControlParameters(ParametrizedQt):
         )
         self.replay_limits = Param((0, 1200), gui=False)
         self.save_buffer = Param(False)
-        self.save_direc = Param(tempfile.gettempdir(), gui="text")
 

@@ -30,6 +30,9 @@ class BaslerCamera(Camera):
         self.camera.PixelFormat.Value = "Mono8"
         self.camera.Gain.Value = 10
         self.camera.ExposureTime.Value = 4000 #cam.ExposureTime.Min
+        self.camera.ChunkModeActive.Value = True
+        self.camera.ChunkSelector.Value = "LineStatusAll"
+        self.camera.ChunkEnable.Value = True
 
 
         self.camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
@@ -61,6 +64,10 @@ class BaslerCamera(Camera):
         else:
             return "W: " + param + " not implemented"
 
+    def detector(self, y_vals):    
+        logic_levels = ((y_vals & (1<<2)) != 0)*1
+        return logic_levels
+
     def read(self):
         """ """
         grabResult = self.camera.RetrieveResult(
@@ -68,18 +75,16 @@ class BaslerCamera(Camera):
         )
 
         if grabResult.GrabSucceeded():
-            # Access the image data.
-            # print("SizeX: ", grabResult.Width)
-            # print("SizeY: ", grabResult.Height)
             img = grabResult.Array
+            time=grabResult.TimeStamp
+            logic=self.detector(grabResult.ChunkLineStatusAll.Value)
+
             # print("Gray value of first pixel: ", img[0, 0])
             grabResult.Release()
-            return img
+            return img, time, logic
 
         else:
             return None
-
-        # return res.Array
 
     def release(self):
         """ """
@@ -91,21 +96,9 @@ if __name__ == "__main__":
     camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
     i = camera.GetNodeMap()
 
-    # camera.Open()
-    # camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
-    # res = camera.RetrieveResult(0, pylon.TimeoutHandling_Return)
-    # print(res)
-    # re.
-    # print(res.Array)
-    # camera.stopGrabbing()
-    # camera.Close()
-
-    # camera = pylon.InstantCamera(
-    #     pylon.TlFactory.GetInstance().CreateFirstDevice())
     camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
     camera.FrameRate = 10
 
-    # while camera.IsGrabbing():
     grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
 
     if grabResult.GrabSucceeded():

@@ -1,6 +1,6 @@
 import datetime
 from queue import Empty
-
+import os
 import numpy as np
 import pyqtgraph as pg
 from PyQt5.QtCore import QRectF, QPointF, QTimer
@@ -133,6 +133,22 @@ class CameraViewWidget(QWidget):
         )
         self.layout_control.addWidget(self.btn_autorange)
 
+        # if self.save_buffer is not None:
+        # self.btn_save_buffer = IconButton(
+        #     icon_name="pause", action_name="Save buffer"
+        # )
+        self.btn_save_buffer = ControlToggleIcon(
+            self.experiment.camera_state,
+            "save_buffer",
+            icon_on=get_icon("rewind"),
+            action_off="go",
+            action_on="save",
+        )
+        self.btn_save_buffer.clicked.connect(self.save_buffers)
+        # self.btn_save_buffer.clicked.connect(self.save_image)
+        self.layout_control.addWidget(self.btn_save_buffer)
+
+
         self.layout.addLayout(self.layout_control)
         self.current_image = None
 
@@ -207,6 +223,13 @@ class CameraViewWidget(QWidget):
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             name = self.experiment.filename_base() + timestamp + "_img.png"
         imsave(name, self.image_item.image)
+
+    def save_buffers(self, name=None):
+        """Save a frame to the current directory."""
+        # if name is None or not name:
+            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        name = self.experiment.folder_name
+        self.control_params.save_direc = name
 
     def show_params_gui(self):
         """ """
