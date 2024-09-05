@@ -28,7 +28,8 @@ setup(
         "imageio-ffmpeg",
         "lightparam>=0.3.7",
         "pyFirmata",
-        "pyautogui"
+        "pyautogui",
+        "PyAv"
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
